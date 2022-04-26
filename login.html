@@ -19,6 +19,9 @@
                         <h3 class="title">Create Account</h3>
                         <form class="form-horizontal">
                             <div class="form-group">
+                                <input type="text" class="form-control signUpName" placeholder="Display Name">
+                            </div>
+                            <div class="form-group">
                                 <input type="email" class="form-control signUpEmail" placeholder="Email">
                             </div>
                             <div class="form-group">
@@ -35,7 +38,7 @@
                     <div class="form-container">
                         <h3 class="title">Sign In</h3>
                         <ul class="social-links">
-                            <li><a href=""><i class="fab fa-google"></i></a></li>
+                            <li><a href="javascript:void(0)"><i class="fab fa-google"></i></a></li>
                         </ul>
                         <span class="description">Sign in with google :</span>
                         <form class="form-horizontal">
@@ -63,24 +66,61 @@
     <script src="assets/js/firebase.js"></script>
     <script>
         $(document).ready(function(){
-            function signUp(signUpEmail,signUPPassword){
+            function signUp(signUpEmail,signUPPassword,signUpName){
                 auth.createUserWithEmailAndPassword(signUpEmail,signUPPassword).
-                then(() => {
+                then(async (result) => {
+                    var user = {
+                        avatar : '',
+                        email : result.user.email,
+                        username : result.user.email.substring(0,result.user.email.lastIndexOf('@')),
+                        display_name : signUpName,
+                        status : 'offline'
+                    }
+                    var database = firebase.database();
+                    var userCollection = database.ref('/users');
+                    await userCollection.child(result.user.uid).set(user);
                     verifyEmail(auth.currentUser);
                 }).
-                catch(error => console.log("error"));
+                catch(error => alert("there is some error"));
             }
             function verifyEmail(currentUser){
                 currentUser.sendEmailVerification().then(() =>{
-                    console.log("email sent successfully");
+                    alert("email sent successfully");
                 }).catch(error => {
-                    console.log("error");
+                    alert("email verification error");
                 })
+            }
+            function signInWithGoogle(){
+                var googleProvider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(googleProvider).
+                then(async (result) => {
+                    var user = {
+                        avatar : result.user.photoURL,
+                        email : result.user.email,
+                        username : result.user.email.substring(0,result.user.email.lastIndexOf('@')),
+                        display_name : result.user.displayName,
+                        status : 'online'
+                    }
+                    var database = firebase.database();
+                    var userCollection = database.ref('/users');
+                    await userCollection.child(result.user.uid).set(user);
+                    sessionStorage.setItem("authUser",result.user.uid);
+                    if(result.user.emailVerified){
+                        window.location.href = "index.html";
+                    }
+                }).
+                catch(error => console.log(error));
             }
             function signIn(signInEmail,signInPassword){
                 auth.signInWithEmailAndPassword(signInEmail,signInPassword).
-                then(() => {
+                then(async (result) => {
                     if(auth.currentUser.emailVerified){
+                        var database = firebase.database();
+                        var userCollection = database.ref('/users');
+                        await userCollection.child(result.user.uid).update({
+                            status : 'online'
+                        })
+                        sessionStorage.setItem("authUser",result.user.uid);
                         window.location.href = "index.html";
                     }
                 }).
@@ -104,8 +144,12 @@
             $(".signup").on("click",function(event){
                 event.preventDefault();
                 var signUpEmail = $(".signUpEmail").val();
+                var signUpName = $(".signUpName").val();
                 var signUPPassword = $(".signUPPassword").val();
-                signUp(signUpEmail,signUPPassword);
+                signUp(signUpEmail,signUPPassword,signUpName);
+            })
+            $(".fa-google").on("click",function(event){
+                signInWithGoogle();
             })
         })
     </script>
