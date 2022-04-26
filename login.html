@@ -19,12 +19,6 @@
                         <h3 class="title">Create Account</h3>
                         <form class="form-horizontal">
                             <div class="form-group">
-                                <input type="text" class="form-control signUpName"  placeholder="Name">
-                            </div>
-                            <div class="form-group">
-                                <input type="text" class="form-control signUpUsername" placeholder="Username">
-                            </div>
-                            <div class="form-group">
                                 <input type="email" class="form-control signUpEmail" placeholder="Email">
                             </div>
                             <div class="form-group">
@@ -69,6 +63,29 @@
     <script src="assets/js/firebase.js"></script>
     <script>
         $(document).ready(function(){
+            function signUp(signUpEmail,signUPPassword){
+                auth.createUserWithEmailAndPassword(signUpEmail,signUPPassword).
+                then(() => {
+                    verifyEmail(auth.currentUser);
+                }).
+                catch(error => console.log("error"));
+            }
+            function verifyEmail(currentUser){
+                currentUser.sendEmailVerification().then(() =>{
+                    console.log("email sent successfully");
+                }).catch(error => {
+                    console.log("error");
+                })
+            }
+            function signIn(signInEmail,signInPassword){
+                auth.signInWithEmailAndPassword(signInEmail,signInPassword).
+                then(() => {
+                    if(auth.currentUser.emailVerified){
+                        window.location.href = "index.html";
+                    }
+                }).
+                catch(error => console.log("sign in error"));
+            }
             $(".signUp").hide();
             $(".changeToSignUp").on("click",function(){
                 $(".signIn").hide();
@@ -82,15 +99,13 @@
                 event.preventDefault();
                 var signInEmail = $(".signInEmail").val();
                 var signInPassword = $(".signInPassword").val();
-                console.log(signInEmail,signInPassword);
+                signIn(signInEmail,signInPassword);
             })
             $(".signup").on("click",function(event){
                 event.preventDefault();
-                var signUpName = $(".signUpName").val();
-                var signUpUsername = $(".signUpUsername").val();
                 var signUpEmail = $(".signUpEmail").val();
                 var signUPPassword = $(".signUPPassword").val();
-                console.log(signUpName,signUpUsername,signUpEmail,signUPPassword);
+                signUp(signUpEmail,signUPPassword);
             })
         })
     </script>
