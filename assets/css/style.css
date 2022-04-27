@@ -184,11 +184,20 @@ body {
     font-size: 12px
 }
 
-.dots {
+.onlinedot {
     height: 10px;
     width: 10px;
     border-radius: 50%;
-    background: blue;
+    background: green;
+    margin-left: 1px;
+    display: flex;
+    margin-right: 5px
+}
+.offlinedot {
+    height: 10px;
+    width: 10px;
+    border-radius: 50%;
+    background: red;
     margin-left: 1px;
     display: flex;
     margin-right: 5px

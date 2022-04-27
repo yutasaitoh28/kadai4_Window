@@ -17,7 +17,10 @@
     <title>Title</title>
   </head>
   <body>
-    <div class="container content align-items-start h-100">
+    <div class="container content d-flex flex-column align-items-start h-100">
+      <div class="row w-100 d-flex justify-content-end align-items-center">
+        <button class="btn btn-primary logout" style="margin-right:15px;margin-bottom:10px;">Log out</button>
+      </div>
       <div class="row w-100" style="height:500px;">
         <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12 col-12 mb-3 contactList" >
             <div class="card w-100 h-100">
@@ -49,13 +52,13 @@
             </div>
         </div>
         <div class="col-xl-8 col-lg-8 col-md-8 col-sm-12 col-12 mb-3 chatScreen">
-          <div class="card w-100 h-100">
+          <div class="card w-100 " style= "height:485px;">
             <div class="card-header">
               <i class="fas fa-arrow-left" style = "margin-right:10px;"></i>
               Chat
             </div>
-            <div class="card-body height3">
-              <ul class="chat-list">
+            <div class="card-body height3" style = "height:100%;">
+              <ul class="chat-list" style = "height:100%;overflow:scroll;">
                 <li class="in">
                   <div class="chat-img">
                     <img
@@ -119,9 +122,12 @@
             <div class="chat-message clearfix">
               <div class="input-group mb-0">
                   <div class="input-group-prepend">
-                      <span class="input-group-text"><i class="fa fa-paper-plane"></i></span>
-                  </div>
-                  <input type="text" class="form-control" placeholder="Enter text here...">                                    
+                    <span class="input-group-text"><i class="fa fa-smile"></i></span>
+                  </div>          
+                  <input type="text" class="form-control messageInput" placeholder="Enter text here...">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text"><i class="fa fa-paper-plane"></i></span>
+                  </div>                                    
               </div>
             </div>
           </div>
@@ -136,5 +142,117 @@
     <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-firestore.js"></script>
     <script src="assets/js/firebase.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/core.min.js" integrity="sha512-t8vdA86yKUE154D1VlNn78JbDkjv3HxdK/0MJDMBUXUjshuzRgET0ERp/0MAgYS+8YD9YmFwnz6+FWLz1gRZaw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/md5.min.js" integrity="sha512-3sGbaDyhjGb+yxqvJKi/gl5zL4J7P5Yh4GXzq+E9puzlmVkIctjf4yP6LfijOUvtoBI3p9pLKia9crHsgYDTUQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-button@latest/dist/index.min.js"></script>
+    <script>
+      $(document).ready(function(){
+        const picker = new EmojiButton({
+          position : 'top-start'
+        })
+
+        picker.on('emoji',function(emoji){
+          var val = $(".messageInput").val();
+          $(".messageInput").val(val + emoji);
+        })
+
+        const trigger = $(".fa-smile");
+        trigger.on("click",function(){
+          picker.pickerVisible ? picker.hidePicker() : picker.showPicker(trigger)
+        })
+
+        $(".bottom").html("");
+        $(".chat-list").html("");
+        var database = firebase.database();
+        var usersCollection = database.ref('/users');
+        var msgsCollection = database.ref('/msgs');
+        var myId = sessionStorage.getItem("authUser");
+        function sendMessage(){
+          var msg = $(".messageInput").val();
+          var username = "";
+          usersCollection.child(myId).on("value",(snapshot) => {
+            username = snapshot.val().username;
+          })
+          var message = {
+            from : myId,
+            text : msg,
+            username : username,
+            time : new Date().getTime()
+          }
+          msgsCollection.push().set(message);
+        }
+        function checkMsg(msg){
+          if(msg.from == myId){
+            return `
+                <li class="out">
+                  <div class="chat-body">
+                    <div class="chat-message">
+                      <h5>${msg.username}</h5>
+                      <p>${msg.text}</p>
+                    </div>
+                  </div>                  
+                </li>
+              `
+          }else{
+            return `
+              <li class="in">
+                <div class="chat-body">
+                  <div class="chat-message">
+                    <h5 class="name">${msg.username}</h5>
+                    <p>${msg.text}</p>
+                  </div>
+                </div>
+              </li>
+            `
+          }
+        }
+        usersCollection.on('child_added',(snapshot) => {
+          if(!(snapshot.key == myId)){
+              $(".bottom").append(`
+              <div class="d-flex justify-content-between align-items-center mb-3 individual" data-id = ${snapshot.key}>
+                  <div class="d-flex flex-row align-items-center">
+                      <div class="image"> <img src="https://www.gravatar.com/avatar/${CryptoJS.MD5("snapshot.val().email")}?d=robohash" width="48">  </div>
+                      <div class="d-flex flex-column line-height ml-2"> <span class="font-weight-bold">${snapshot.val().username}</span> </div>
+                  </div> ${snapshot.val().status == 'online' ? '<span class="onlinedot">' : '<span class="offlinedot">' } </span>
+              </div>
+              `)
+          }
+        })
+        usersCollection.on('child_changed',(snapshot) => {
+          $(".individual").each(function(){
+            if($(this).data("id") == snapshot.key){
+              $(this).html(`
+                  <div class="d-flex flex-row align-items-center">
+                    <div class="image"> <img src="https://www.gravatar.com/avatar/${CryptoJS.MD5("snapshot.val().email")}?d=robohash" width="48">  </div>
+                    <div class="d-flex flex-column line-height ml-2"> <span class="font-weight-bold">${snapshot.val().username}</span> </div>
+                  </div> ${snapshot.val().status == 'online' ? '<span class="onlinedot">' : '<span class="offlinedot">' } </span>
+                `)
+            }
+          })
+        })
+        $(".fa-paper-plane").on("click",function(){
+          sendMessage();
+          var msg = $(".messageInput").val("");
+        })
+        $(".messageInput").keypress(function(event){
+          if(event.keyCode == '13'){
+            sendMessage();
+            var msg = $(".messageInput").val("");
+          }
+        })
+        msgsCollection.on("child_added",(snapshot) => {
+          $(".chat-list").append(checkMsg(snapshot.val()));
+          var chat_list = document.querySelector(".chat-list");
+          chat_list.scrollTop = chat_list.scrollHeight;
+        })
+        $(".logout").on("click",function(){
+          usersCollection.child(myId).update({
+            status : 'offline'
+          })
+          sessionStorage.setItem("authUser",null)
+          window.location.href = "login.html";
+        })
+      })
+    </script>
   </body>
 </html>
